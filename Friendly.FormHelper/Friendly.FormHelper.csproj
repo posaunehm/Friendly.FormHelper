@@ -51,7 +51,7 @@
   <ItemGroup>
     <Compile Include="FormWrapper.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="TransparentProxy.cs" />
+    <Compile Include="FriendlyProxy.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />

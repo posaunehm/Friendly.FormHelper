@@ -27,6 +27,7 @@ namespace Friendly.FormHelper
             //string callSite = string.Format("{0}.{1}", method.DeclaringType.FullName, mm.MethodName);
             var ret = _formAppVar[mm.MethodName]();
 
+            
 
             return new ReturnMessage(
                 ret.Core, null, 0, mm.LogicalCallContext, (IMethodCallMessage)msg);

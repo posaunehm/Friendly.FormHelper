@@ -65,5 +65,11 @@ namespace Friendly.FormHelper
     public interface IControlCollectionClone
     {
         int Count { get;  }
+        IControlClone this[int i] { get; }
+    }
+
+    public interface IControlClone
+    {
+        string Text { get; set; }
     }
 }

@@ -22,11 +22,11 @@ namespace Friendly.FormHelper
             _app = new WindowsAppFriend(_proc, "v4.0.30319");
         }
 
-        public Form MainForm
+        public IFormClone MainForm
         {
             get
             {
-                var proxy = new FriendlyProxy<Form>(_app["System.Windows.Forms.Control.FromHandle"](_proc.MainWindowHandle)).GetTransparentProxy() as Form;
+                var proxy = new FriendlyProxy<IFormClone>(_app["System.Windows.Forms.Control.FromHandle"](_proc.MainWindowHandle)).GetTransparentProxy() as IFormClone;
 
                 return proxy;
             }
@@ -52,5 +52,17 @@ namespace Friendly.FormHelper
             this.Dispose(false);
         }
 
+    }
+
+    public interface IFormClone
+    {
+        IntPtr Handle { get;  }
+        string Text { get; set; }
+        IControlCollectionClone Controls { get;  }
+    }
+
+    public interface IControlCollectionClone
+    {
+        int Count { get;  }
     }
 }

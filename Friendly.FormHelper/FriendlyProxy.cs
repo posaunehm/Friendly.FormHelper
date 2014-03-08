@@ -1,5 +1,7 @@
+using System;
 using System.Reflection;
 using System.Runtime.Remoting.Messaging;
+using System.Windows.Forms;
 using Codeer.Friendly;
 using Codeer.Friendly.Windows;
 
@@ -21,16 +23,32 @@ namespace Friendly.FormHelper
             var mm = msg as IMethodMessage;
 
             var method = (MethodInfo)mm.MethodBase;
-            object[] args = mm.Args;
+            var args = mm.Args;
 
+            var ret = _formAppVar[mm.MethodName](args);
 
-            //string callSite = string.Format("{0}.{1}", method.DeclaringType.FullName, mm.MethodName);
-            var ret = _formAppVar[mm.MethodName]();
+            object returnValue;
+            try
+            {
+                returnValue = ret.Core;
+            }
+            catch (FriendlyOperationException)
+            {
+                returnValue = null;
+            }
 
-            
+            if (returnValue != null)
+            {
 
-            return new ReturnMessage(
-                ret.Core, null, 0, mm.LogicalCallContext, (IMethodCallMessage)msg);
+                return new ReturnMessage(
+                    returnValue, null, 0, mm.LogicalCallContext, (IMethodCallMessage)msg);
+            }
+            else
+            {
+                return new ReturnMessage(
+                    new FriendlyProxy<IControlCollectionClone>(ret).GetTransparentProxy(), null, 0, mm.LogicalCallContext,
+                    (IMethodCallMessage) msg);
+            }
         }
     }
 }

@@ -11,19 +11,33 @@ namespace Test
     {
         private Process _proc;
 
-        [TestMethod]
-        public void メインフォームのプロパティ取得テスト()
+        [TestInitialize]
+        public void Setup()
         {
             _proc =
                 Process.Start(
                     @"D:\Documents\Visual Studio 2013\Projects\Friendly.FormHelper\SampleForm\bin\Debug\SampleForm.exe");
+        }
 
+        [TestMethod]
+        public void メインフォームの確定値プロパティ取得テスト()
+        {
             var wrapper = new FormWrapper(_proc);
 
             var sut = wrapper.MainForm;
 
             sut.Handle.Is(_proc.MainWindowHandle);
             sut.Text.Is("MainForm");
+        }
+
+        [TestMethod]
+        public void メインフォームの非確定値プロパティ取得テスト()
+        {
+            var wrapper = new FormWrapper(_proc);
+
+            var sut = wrapper.MainForm;
+
+            sut.Controls.Count.Is(1);
         }
 
         [TestCleanup]

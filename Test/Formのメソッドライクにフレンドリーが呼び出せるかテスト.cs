@@ -40,6 +40,16 @@ namespace Test
             sut.Controls.Count.Is(1);
         }
 
+        [TestMethod]
+        public void メインフォームの非確定値プロパティ取得テスト_その2()
+        {
+            var wrapper = new FormWrapper(_proc);
+
+            var sut = wrapper.MainForm;
+
+            sut.ParentForm.IsNull();
+        }
+
         [TestCleanup]
         public void TearDown()
         {

@@ -4,12 +4,15 @@ using System.Runtime.Remoting.Messaging;
 using System.Windows.Forms;
 using Codeer.Friendly;
 using Codeer.Friendly.Windows;
+using LangExt;
 
 namespace Friendly.FormHelper
 {
     class FriendlyProxy<TInterface> : System.Runtime.Remoting.Proxies.RealProxy
     {
         private readonly AppVar _formAppVar;
+
+        private static readonly object NullObject = new object();
 
         public FriendlyProxy(AppVar formAppVar)
             : base(typeof(TInterface))
@@ -27,28 +30,33 @@ namespace Friendly.FormHelper
 
             var ret = _formAppVar[mm.MethodName](args);
 
-            object returnValue;
+            Option<object> returnValue;
+            
             try
             {
-                returnValue = ret.Core;
+                returnValue = Option.Some(ret.Core ?? NullObject);
             }
             catch (FriendlyOperationException)
             {
-                returnValue = null;
+                returnValue = Option.None;
             }
 
-            if (returnValue != null)
-            {
 
-                return new ReturnMessage(
-                    returnValue, null, 0, mm.LogicalCallContext, (IMethodCallMessage)msg);
-            }
-            else
-            {
-                return new ReturnMessage(
-                    new FriendlyProxy<IControlCollectionClone>(ret).GetTransparentProxy(), null, 0, mm.LogicalCallContext,
-                    (IMethodCallMessage) msg);
-            }
+            return returnValue.Match(
+                Some: r => new ReturnMessage(
+                    r == NullObject ? null : r, null, 0, mm.LogicalCallContext, (IMethodCallMessage)msg),
+                None: () =>
+                {
+                    var friendlyProxyType = typeof (FriendlyProxy<>);
+                    var constructedFriendlyProxyType = friendlyProxyType.MakeGenericType(method.ReturnType);
+                    var friendlyProxy =
+                        (dynamic) Activator.CreateInstance(constructedFriendlyProxyType, new object[] {ret});
+                    object transparentProxy = friendlyProxy.GetTransparentProxy();
+
+                    return new ReturnMessage(
+                        transparentProxy, null, 0, mm.LogicalCallContext,
+                        (IMethodCallMessage) msg);
+                });
         }
     }
 }

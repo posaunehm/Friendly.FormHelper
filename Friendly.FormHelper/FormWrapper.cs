@@ -59,6 +59,7 @@ namespace Friendly.FormHelper
         IntPtr Handle { get;  }
         string Text { get; set; }
         IControlCollectionClone Controls { get;  }
+        IFormClone ParentForm { get; set; }
     }
 
     public interface IControlCollectionClone

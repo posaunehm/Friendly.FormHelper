@@ -4,11 +4,11 @@
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-    <ProjectGuid>{C6ECE328-CA4C-46D6-B557-302E67FAA902}</ProjectGuid>
+    <ProjectGuid>{4332D1E6-665E-491D-9800-577B28537741}</ProjectGuid>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>Friendly.FormHelper</RootNamespace>
-    <AssemblyName>Friendly.FormHelper</AssemblyName>
+    <RootNamespace>InterfaceGenerator</RootNamespace>
+    <AssemblyName>InterfaceGenerator</AssemblyName>
     <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
   </PropertyGroup>
@@ -30,21 +30,8 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="Codeer.Friendly">
-      <HintPath>..\packages\Codeer.Friendly.2.1.0\lib\net40\Codeer.Friendly.dll</HintPath>
-    </Reference>
-    <Reference Include="Codeer.Friendly.Dynamic">
-      <HintPath>..\packages\Codeer.Friendly.2.1.0\lib\net40\Codeer.Friendly.Dynamic.dll</HintPath>
-    </Reference>
-    <Reference Include="Codeer.Friendly.Windows">
-      <HintPath>..\packages\Codeer.Friendly.Windows.2.1.0\lib\net20\Codeer.Friendly.Windows.dll</HintPath>
-    </Reference>
-    <Reference Include="LangExt">
-      <HintPath>..\packages\LangExt.2.1.0.0\lib\portable-win+net40\LangExt.dll</HintPath>
-    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
-    <Reference Include="System.Windows.Forms" />
     <Reference Include="System.Xml.Linq" />
     <Reference Include="System.Data.DataSetExtensions" />
     <Reference Include="Microsoft.CSharp" />
@@ -52,12 +39,21 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="FormWrapper.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="FriendlyProxy.cs" />
+    <Compile Include="Template1.cs">
+      <AutoGen>True</AutoGen>
+      <DesignTime>True</DesignTime>
+      <DependentUpon>Template1.tt</DependentUpon>
+    </Compile>
   </ItemGroup>
   <ItemGroup>
-    <None Include="packages.config" />
+    <None Include="Template1.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>Template1.cs</LastGenOutput>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <Service Include="{508349B6-6B84-4DF5-91F0-309BEEBAD82D}" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

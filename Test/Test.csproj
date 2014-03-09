@@ -55,7 +55,7 @@
     <Compile Include="ChainingAssertion.MSTest.cs" />
     <Compile Include="Formのメソッドライクにフレンドリーが呼び出せるかテスト.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="Fクローンインターフェース作成テスト.cs" />
+    <Compile Include="クローンインターフェース作成テスト.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />

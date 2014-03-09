@@ -28,10 +28,23 @@ namespace Friendly.FormHelper
             var method = (MethodInfo)mm.MethodBase;
             var args = mm.Args;
 
-            var ret = _formAppVar[mm.MethodName](args);
+            var returnedAppVal = _formAppVar[mm.MethodName](args);
 
+
+            var returnValue = TryGetCoreValue(returnedAppVal);
+
+
+            return returnValue.Match(
+                Some: r => new ReturnMessage(
+                    r == NullObject ? null : r, null, 0, mm.LogicalCallContext, (IMethodCallMessage)msg),
+                None: () => new ReturnMessage(
+                    WrapChildAppVar(method, returnedAppVal), null, 0, mm.LogicalCallContext,
+                    (IMethodCallMessage) msg));
+        }
+
+        private static Option<object> TryGetCoreValue(AppVar ret)
+        {
             Option<object> returnValue;
-            
             try
             {
                 returnValue = Option.Some(ret.Core ?? NullObject);
@@ -40,23 +53,14 @@ namespace Friendly.FormHelper
             {
                 returnValue = Option.None;
             }
+            return returnValue;
+        }
 
-
-            return returnValue.Match(
-                Some: r => new ReturnMessage(
-                    r == NullObject ? null : r, null, 0, mm.LogicalCallContext, (IMethodCallMessage)msg),
-                None: () =>
-                {
-                    var friendlyProxyType = typeof (FriendlyProxy<>);
-                    var constructedFriendlyProxyType = friendlyProxyType.MakeGenericType(method.ReturnType);
-                    var friendlyProxy =
-                        (dynamic) Activator.CreateInstance(constructedFriendlyProxyType, new object[] {ret});
-                    object transparentProxy = friendlyProxy.GetTransparentProxy();
-
-                    return new ReturnMessage(
-                        transparentProxy, null, 0, mm.LogicalCallContext,
-                        (IMethodCallMessage) msg);
-                });
+        private static object WrapChildAppVar(MethodInfo method, AppVar ret)
+        {
+            var friendlyProxyType = typeof (FriendlyProxy<>).MakeGenericType(method.ReturnType);
+            dynamic friendlyProxy = Activator.CreateInstance(friendlyProxyType, new object[] {ret});
+            return friendlyProxy.GetTransparentProxy();
         }
     }
 }

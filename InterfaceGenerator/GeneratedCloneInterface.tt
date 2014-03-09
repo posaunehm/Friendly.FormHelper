@@ -1,0 +1,33 @@
+﻿<#@ template debug="true" hostSpecific="true" #>
+<#@ output extension=".cs" #>
+<#@ Assembly Name="System.Core.dll" #>
+<#@ Assembly Name="System.Windows.Forms.dll" #>
+<#@ import namespace="System" #>
+<#@ import namespace="System.IO" #>
+<#@ import namespace="System.Diagnostics" #>
+<#@ import namespace="System.Linq" #>
+<#@ import namespace="System.Collections" #>
+<#@ import namespace="System.Collections.Generic" #> 
+<#@ import namespace="System.Windows.Forms" #> 
+<#   
+   Type targetType = typeof(Form);   
+ #>
+
+namespace InterfaceGenerator
+{
+	interface IGeneratedCloneFor<#= targetType.Name #>
+	{
+		//値型プロパティ
+		<# foreach(var prop in targetType.GetProperties().Where(p => p.PropertyType.IsValueType)){ #>
+
+		<# 
+			var hasGetter = prop.CanRead;
+			var hasSetter = prop.CanWrite;
+		 #>
+
+		<#= prop.PropertyType.FullName #> <#= prop.Name #> { <#=hasGetter ? "get;" : "" #> <#=hasSetter ? "set;" : "" #>}
+
+		<# } #>
+    }
+}
+

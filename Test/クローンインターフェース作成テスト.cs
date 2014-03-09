@@ -19,8 +19,7 @@ namespace Test
 
             GetTypeRec(formType,_dict);
 
-            
-            
+
         }
 
         void GetTypeRec(Type type,  Dictionary<Type, string> dict)

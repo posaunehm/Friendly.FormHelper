@@ -15,25 +15,33 @@
 	GetTypeRec(typeof(Form),dict);
 
    Type[] targetTypes = new Type[]{typeof(Form),typeof(Button)};   
- #>
-
+#>
 namespace InterfaceGenerator
 {
 	<# foreach(var targetType in dict.Keys) {#>
 	public interface IGeneratedCloneFor<#= targetType.Name #>
 	{
-		//値型プロパティ
-		<# foreach(var prop in targetType.GetProperties().Where(p => !p.PropertyType.IsArray && p.GetIndexParameters().Length == 0)){ #>
-
-		<# 
+		<# foreach(var prop in targetType.GetProperties()){ 
+ 
 			var hasGetter = prop.CanRead;
 			var hasSetter = prop.CanWrite;
 
 			var propTypeName = dict.ContainsKey(prop.PropertyType) ? "IGeneratedCloneFor" + prop.PropertyType.Name : prop.PropertyType.FullName;
-		 #>
-
+		 
+		  if(prop.GetIndexParameters().Length == 0){ #>
 		<#= propTypeName.Replace('+','.') #> <#= prop.Name #> { <#=hasGetter ? "get;" : "" #> <#=hasSetter ? "set;" : "" #>}
+		<# } 
+			else{
+				var indexerStr =  prop.GetIndexParameters()
+					.Select( (para,index) => para.ParameterType.FullName.Replace('+','.') + " index" + index.ToString() + ",")
+					.Reverse()
+					.Aggregate("", (ele,acc) => acc + ele);
 
+				indexerStr = indexerStr.TrimEnd(',');
+	  #><#= propTypeName.Replace('+','.') #> this[<#= indexerStr #>]{ <#=hasGetter ? "get;" : "" #> <#=hasSetter ? "set;" : "" #>}
+	  <#
+            }
+		#>
 		<# } #>
     }
 	<# } #>

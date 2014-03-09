@@ -8,6 +8,7 @@ using System.Windows.Forms;
 using Codeer.Friendly;
 using Codeer.Friendly.Dynamic;
 using Codeer.Friendly.Windows;
+using InterfaceGenerator;
 
 namespace Friendly.FormHelper
 {
@@ -22,11 +23,11 @@ namespace Friendly.FormHelper
             _app = new WindowsAppFriend(_proc, "v4.0.30319");
         }
 
-        public IFormClone MainForm
+        public IGeneratedCloneForForm MainForm
         {
             get
             {
-                var proxy = new FriendlyProxy<IFormClone>(_app["System.Windows.Forms.Control.FromHandle"](_proc.MainWindowHandle)).GetTransparentProxy() as IFormClone;
+                var proxy = new FriendlyProxy<IGeneratedCloneForForm>(_app["System.Windows.Forms.Control.FromHandle"](_proc.MainWindowHandle)).GetTransparentProxy() as IGeneratedCloneForForm;
 
                 return proxy;
             }

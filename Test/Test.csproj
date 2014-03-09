@@ -65,6 +65,10 @@
       <Project>{c6ece328-ca4c-46d6-b557-302e67faa902}</Project>
       <Name>Friendly.FormHelper</Name>
     </ProjectReference>
+    <ProjectReference Include="..\InterfaceGenerator\InterfaceGenerator.csproj">
+      <Project>{4332D1E6-665E-491D-9800-577B28537741}</Project>
+      <Name>InterfaceGenerator</Name>
+    </ProjectReference>
   </ItemGroup>
   <Choose>
     <When Condition="'$(VisualStudioVersion)' == '10.0' And '$(IsCodedUITest)' == 'True'">

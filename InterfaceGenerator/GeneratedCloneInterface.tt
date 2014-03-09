@@ -15,10 +15,10 @@
 
 namespace InterfaceGenerator
 {
-	interface IGeneratedCloneFor<#= targetType.Name #>
+	public interface IGeneratedCloneFor<#= targetType.Name #>
 	{
 		//値型プロパティ
-		<# foreach(var prop in targetType.GetProperties().Where(p => p.PropertyType.IsValueType)){ #>
+		<# foreach(var prop in targetType.GetProperties().Where(p => p.PropertyType.IsValueType || p.PropertyType == typeof(string))){ #>
 
 		<# 
 			var hasGetter = prop.CanRead;

@@ -37,7 +37,7 @@ namespace Test
 
             var sut = wrapper.MainForm;
 
-            //sut.Controls.Count.Is(1);
+            sut.Controls.Count.Is(1);
             //sut.Controls[0].Text.Is("hoge");
 
         }

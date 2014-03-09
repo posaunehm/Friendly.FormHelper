@@ -10,24 +10,49 @@
 <#@ import namespace="System.Collections.Generic" #> 
 <#@ import namespace="System.Windows.Forms" #> 
 <#   
-   Type targetType = typeof(Form);   
+   Dictionary<Type, string> dict= new Dictionary<Type, string>();
+
+	GetTypeRec(typeof(Form),dict);
+
+   Type[] targetTypes = new Type[]{typeof(Form),typeof(Button)};   
  #>
 
 namespace InterfaceGenerator
 {
+	<# foreach(var targetType in dict.Keys) {#>
 	public interface IGeneratedCloneFor<#= targetType.Name #>
 	{
 		//値型プロパティ
-		<# foreach(var prop in targetType.GetProperties().Where(p => p.PropertyType.IsValueType || p.PropertyType == typeof(string))){ #>
+		<# foreach(var prop in targetType.GetProperties().Where(p => !p.PropertyType.IsArray && p.GetIndexParameters().Length == 0)){ #>
 
 		<# 
 			var hasGetter = prop.CanRead;
 			var hasSetter = prop.CanWrite;
+
+			var propTypeName = dict.ContainsKey(prop.PropertyType) ? "IGeneratedCloneFor" + prop.PropertyType.Name : prop.PropertyType.FullName;
 		 #>
 
-		<#= prop.PropertyType.FullName #> <#= prop.Name #> { <#=hasGetter ? "get;" : "" #> <#=hasSetter ? "set;" : "" #>}
+		<#= propTypeName.Replace('+','.') #> <#= prop.Name #> { <#=hasGetter ? "get;" : "" #> <#=hasSetter ? "set;" : "" #>}
 
 		<# } #>
     }
+	<# } #>
 }
+
+<#+ 
+void GetTypeRec(Type type,  Dictionary<Type, string> dict)
+{
+    if (type.IsValueType || type == typeof(string) || type.IsArray) { return; }
+            
+    if(dict.ContainsKey(type)){return;}
+
+    dict.Add(type, type.Name);
+            
+    foreach (var propType in type.GetProperties().Select(info => info.PropertyType))
+    {
+        GetTypeRec(propType, dict);
+    }
+
+}
+ #>
 

@@ -10,57 +10,55 @@
 <#@ import namespace="System.Collections.Generic" #> 
 <#@ import namespace="System.Windows.Forms" #> 
 <#   
-   Dictionary<Type, string> dict= new Dictionary<Type, string>();
-
+	var dict= new Dictionary<Type, string>();
 	GetTypeRec(typeof(Form),dict);
-
-   Type[] targetTypes = new Type[]{typeof(Form),typeof(Button)};   
+	Type[] targetTypes = new Type[]{typeof(Form),typeof(Button)};   
 #>
 namespace InterfaceGenerator
 {
-	<# foreach(var targetType in dict.Keys) {#>
-	public interface IGeneratedCloneFor<#= targetType.Name #>
+	<# foreach(var targetType in dict.Keys) {
+	#>public interface IGeneratedCloneFor<#= targetType.Name #>
 	{
-		<# foreach(var prop in targetType.GetProperties()){ 
+<# foreach(var prop in targetType.GetProperties()){ 
  
-			var hasGetter = prop.CanRead;
-			var hasSetter = prop.CanWrite;
+	var hasGetter = prop.CanRead;
+	var hasSetter = prop.CanWrite;
 
-			var propTypeName = dict.ContainsKey(prop.PropertyType) ? "IGeneratedCloneFor" + prop.PropertyType.Name : prop.PropertyType.FullName;
+	var propTypeName = dict.ContainsKey(prop.PropertyType) ? "IGeneratedCloneFor" + prop.PropertyType.Name : prop.PropertyType.FullName;
 		 
-		  if(prop.GetIndexParameters().Length == 0){ #>
+	if(prop.GetIndexParameters().Length == 0){ 
+#>
 		<#= propTypeName.Replace('+','.') #> <#= prop.Name #> { <#=hasGetter ? "get;" : "" #> <#=hasSetter ? "set;" : "" #>}
-		<# } 
-			else{
-				var indexerStr =  prop.GetIndexParameters()
-					.Select( (para,index) => para.ParameterType.FullName.Replace('+','.') + " index" + index.ToString() + ",")
-					.Reverse()
-					.Aggregate("", (ele,acc) => acc + ele);
+<# } 
+	else{
+		var indexerStr =  prop.GetIndexParameters()
+			.Select( (para,index) => para.ParameterType.FullName.Replace('+','.') + " index" + index.ToString() + ",")
+			.Reverse()
+			.Aggregate("", (ele,acc) => acc + ele);
 
-				indexerStr = indexerStr.TrimEnd(',');
-	  #><#= propTypeName.Replace('+','.') #> this[<#= indexerStr #>]{ <#=hasGetter ? "get;" : "" #> <#=hasSetter ? "set;" : "" #>}
-	  <#
-            }
-		#>
-		<# } #>
-    }
+		indexerStr = indexerStr.TrimEnd(',');
+#>
+		<#= propTypeName.Replace('+','.') #> this[<#= indexerStr #>]{ <#=hasGetter ? "get;" : "" #> <#=hasSetter ? "set;" : "" #>}
+<# } #>
+<# } #>
+	}
+
 	<# } #>
 }
 
 <#+ 
-void GetTypeRec(Type type,  Dictionary<Type, string> dict)
-{
-    if (type.IsValueType || type == typeof(string) || type.IsArray) { return; }
+	void GetTypeRec(Type type,  Dictionary<Type, string> dict)
+	{
+		if (type.IsValueType || type == typeof(string) || type.IsArray) { return; }
             
-    if(dict.ContainsKey(type)){return;}
+		if(dict.ContainsKey(type)){return;}
 
-    dict.Add(type, type.Name);
+		dict.Add(type, type.Name);
             
-    foreach (var propType in type.GetProperties().Select(info => info.PropertyType))
-    {
-        GetTypeRec(propType, dict);
-    }
-
-}
- #>
+		foreach (var propType in type.GetProperties().Select(info => info.PropertyType))
+		{
+			GetTypeRec(propType, dict);
+		}
+	}
+#>
 

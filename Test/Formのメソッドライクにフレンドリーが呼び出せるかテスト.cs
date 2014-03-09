@@ -39,6 +39,7 @@ namespace Test
 
             sut.Controls.Count.Is(1);
             sut.Controls[0].Text.Is("hoge");
+            sut.Controls["button1"].Text.Is("hoge");
         }
 
         [TestMethod]
@@ -48,7 +49,7 @@ namespace Test
 
             var sut = wrapper.MainForm;
 
-            //sut.ParentForm.IsNull();
+            sut.ParentForm.IsNull();
         }
 
         [TestCleanup]

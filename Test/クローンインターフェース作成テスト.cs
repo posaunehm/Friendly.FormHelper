@@ -18,8 +18,15 @@ namespace Test
             var formType = typeof (Form);
 
             GetTypeRec(formType,_dict);
+        }
 
 
+        [TestMethod]
+        public void test()
+        {
+            var testStr = "IGeneratedCloneForIEnumerable`1";
+
+            testStr.Split('`')[0].Is("IGeneratedCloneForIEnumerable");
         }
 
         void GetTypeRec(Type type,  Dictionary<Type, string> dict)
@@ -33,6 +40,11 @@ namespace Test
             foreach (var propType in type.GetProperties().Select(info => info.PropertyType))
             {
                 GetTypeRec(propType, dict);
+            }
+
+            foreach (var method in type.GetMethods())
+            {
+                GetTypeRec(method.ReturnType, dict);
             }
 
         }

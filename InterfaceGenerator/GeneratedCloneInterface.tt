@@ -16,8 +16,8 @@
 #>
 namespace InterfaceGenerator
 {
-	<# foreach(var targetType in dict.Keys) {
-	#>public interface IGeneratedCloneFor<#= targetType.Name #>
+<# foreach(var targetType in dict.Keys) {#>
+	public interface IGeneratedCloneFor<#= targetType.Name #>
 	{
 <# foreach(var prop in targetType.GetProperties()){ 
  
@@ -43,7 +43,7 @@ namespace InterfaceGenerator
 <# } #>
 	}
 
-	<# } #>
+<# } #>
 }
 
 <#+ 

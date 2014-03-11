@@ -10,21 +10,24 @@
 <#@ import namespace="System.Collections.Generic" #> 
 <#@ import namespace="System.Windows.Forms" #> 
 <#   
-	var dict= new Dictionary<Type, string>();
+	var dict= new Dictionary<Type, TypeWrapper>();
 	GetTypeRec(typeof(Form),dict);
 	Type[] targetTypes = new Type[]{typeof(Form),typeof(Button)};   
 #>
 namespace InterfaceGenerator
 {
 <# foreach(var targetType in dict.Keys) {#>
-	public interface IGeneratedCloneFor<#= targetType.Name #>
+	public interface <#= dict[targetType].WrappingName #>
 	{
 <# foreach(var prop in targetType.GetProperties()){ 
  
 	var hasGetter = prop.CanRead;
 	var hasSetter = prop.CanWrite;
 
-	var propTypeName = dict.ContainsKey(prop.PropertyType) ? "IGeneratedCloneFor" + prop.PropertyType.Name : prop.PropertyType.FullName;
+	var propRealType = prop.PropertyType.IsGenericType ? prop.PropertyType.GetGenericTypeDefinition() : prop.PropertyType;
+
+	var propTypeName = dict.ContainsKey(propRealType) ? dict[propRealType].GetWrappingNameWithType(prop.PropertyType.GenericTypeArguments) : propRealType.FullName;
+	propTypeName = propTypeName ?? "T" + propRealType.GenericParameterPosition.ToString();
 		 
 	if(prop.GetIndexParameters().Length == 0){ 
 #>
@@ -47,17 +50,78 @@ namespace InterfaceGenerator
 }
 
 <#+ 
-	void GetTypeRec(Type type,  Dictionary<Type, string> dict)
-	{
-		if (type.IsValueType || type == typeof(string) || type.IsArray) { return; }
+    static void  GetTypeRec(Type type,  Dictionary<Type, TypeWrapper> dict)
+    {
+        if ((type.IsValueType && !type.IsGenericType) || type == typeof(string) || type.IsByRef || type.IsGenericParameter) { return; }
             
-		if(dict.ContainsKey(type)){return;}
+        var realType = type.IsGenericType ? type.GetGenericTypeDefinition() : type;
 
-		dict.Add(type, type.Name);
+        if (dict.ContainsKey(realType)) { return; }
+
+        dict.Add(realType, new TypeWrapper(type));
             
-		foreach (var propType in type.GetProperties().Select(info => info.PropertyType))
-		{
-			GetTypeRec(propType, dict);
-		}
-	}
+        foreach (var propType in type.GetProperties().Select(info => info.PropertyType))
+        {
+            GetTypeRec(propType, dict);
+        }
+
+        foreach (var method in type.GetMethods())
+        {
+            GetTypeRec(method.ReturnType, dict);
+        }
+    }
+
+    class TypeWrapper
+    {
+        private const string ClassNamePlaceHolder = "IGeneratedCloneFor";
+
+        private readonly Type _baseType;
+        private readonly string _wrappingName;
+
+        public TypeWrapper(Type baseType)
+        {
+            _baseType = baseType;
+            _wrappingName = MakeCloneInterfaceName(_baseType);
+        }
+
+        public string WrappingName
+        {
+            get { return _wrappingName; }
+        }
+
+        private static string MakeCloneInterfaceName(Type type)
+        {
+            if (!type.IsGenericType) return ClassNamePlaceHolder + type.Name.Replace("[]", "Array");
+
+            var genericParamString = GetGenericParamString(Enumerable.Range(0, type.GenericTypeArguments.Length).Select(i => string.Format("T{0}", i)));
+            var typeNameWithoutGenericParams = type.Name.Split('`')[0];
+
+            return string.Format("{0}{1}<{2}>", ClassNamePlaceHolder, typeNameWithoutGenericParams, genericParamString);
+        }
+
+        private static string GetGenericParamString(IEnumerable<string> typeParamString)
+        {
+            var genericParamString = typeParamString
+                .Aggregate("", (s, i) => string.Format("{0}{1},", s, i))
+                .TrimEnd(',');
+            return genericParamString;
+        }
+
+        public string GetWrappingNameWithType(Type[] types)
+        {
+            if (!_baseType.IsGenericType) return ClassNamePlaceHolder + _baseType.Name.Replace("[]", "Array");
+
+            var genericParamString = GetGenericParamString(types.Select(GetParameterName));
+            var typeNameWithoutGenericParams = _baseType.Name.Split('`')[0];
+
+            return string.Format("{0}{1}<{2}>", ClassNamePlaceHolder, typeNameWithoutGenericParams, genericParamString);
+        }
+
+        private static string GetParameterName(Type type)
+        {
+            return string.IsNullOrEmpty(type.FullName)
+                ? string.Format("T{0}", type.GenericParameterPosition)
+                : type.FullName;
+        }
+    }
 #>

@@ -11,14 +11,14 @@ namespace Test
     [TestClass]
     public class クローンインターフェース作成テスト
     {
-        private Dictionary<Type, string> _dict;
+        private Dictionary<Type, TypeWrapper> _dict;
         private const string ClassNamePlaceHolder = "IGeneratedCloneFor";
 
 
         [TestInitialize]
         public void Setup()
         {
-            _dict = new Dictionary<Type, string>();
+            _dict = new Dictionary<Type, TypeWrapper>();
         }
 
 
@@ -54,63 +54,81 @@ namespace Test
         [TestMethod]
         public void 束縛する型が異なるジェネリック型を二つ加えても片方しか追加されない()
         {
-            GetTypeRec(typeof(TestGeneric<string>), _dict);
-            GetTypeRec(typeof(TestGeneric<int>), _dict);
+            GetTypeRec(typeof(TestGeneric<string, int>), _dict);
+            GetTypeRec(typeof(TestGeneric<int,object>), _dict);
 
-            _dict.ContainsKey(typeof(TestGeneric<>)).IsTrue();
-            _dict.ContainsKey(typeof(TestGeneric<int>)).IsFalse();
-            _dict.ContainsKey(typeof(TestGeneric<string>)).IsFalse();
+            _dict.ContainsKey(typeof(TestGeneric<,>)).IsTrue();
+            _dict.ContainsKey(typeof(TestGeneric<string,int>)).IsFalse();
+            _dict.ContainsKey(typeof(TestGeneric<int,object>)).IsFalse();
+        }
+
+        [TestMethod]
+        public void 返り値がGenericの場合()
+        {
+            GetTypeRec(typeof(IEnumerator<>), _dict);
+            _dict.Keys.Any(type => type.IsGenericParameter).IsFalse();
+        }
+
+        [TestMethod]
+        public void NullableがGeneric型として登録される()
+        {
+            GetTypeRec(typeof(int?), _dict);
+            _dict.ContainsKey(typeof (Nullable<>)).IsTrue();
         }
 
         [TestMethod]
         public void 通常のClassのクローンインターフェース名を作成する()
         {
-            var type = typeof(Object);
-
-            MakeCloneInterfaceName(type).Is("IGeneratedCloneForObject");
+            new TypeWrapper(typeof(Object)).WrappingName.Is("IGeneratedCloneForObject");
         }
 
         [TestMethod]
         public void GenericClassのクローンインターフェース名を作成する()
         {
-            var genericType = typeof (Dictionary<string, string>);
-
-            MakeCloneInterfaceName(genericType).Is("IGeneratedCloneForDictionary<T0,T1>");
+            new TypeWrapper(typeof (Dictionary<string, string>)).WrappingName.Is("IGeneratedCloneForDictionary<T0,T1>");
         }
 
         [TestMethod]
         public void Arrayのクローンインターフェース名を作成する()
         {
-            var genericType = typeof(object[]);
-
-            MakeCloneInterfaceName(genericType).Is("IGeneratedCloneForObjectArray");
+            new TypeWrapper(typeof(object[])).WrappingName.Is("IGeneratedCloneForObjectArray");
         }
 
-        private string MakeCloneInterfaceName(Type type)
+        [TestMethod]
+        public void Nullableのクローンインターフェース名を作成する()
         {
-            var typeArguments = type.GenericTypeArguments;
-            if (typeArguments.Any())
-            {
-                var genericParamString = Enumerable.Range(0, typeArguments.Length)
-                                                   .Aggregate("", (s, i) => string.Format("{0}T{1},", s, i))
-                                         .TrimEnd(',');
-                var typeNameWithoutGenericParams = type.Name.Split('`')[0];
+            new TypeWrapper(typeof(int?)).WrappingName.Is("IGeneratedCloneForNullable<T0>");
+        }
 
-                return string.Format("{0}{1}<{2}>",ClassNamePlaceHolder, typeNameWithoutGenericParams, genericParamString);
-            }
-            return ClassNamePlaceHolder + type.Name.Replace("[]", "Array");
+        [TestMethod]
+        public void Genric型に実際の型を入れる()
+        {
+            var type = typeof(TestGeneric<string,int>);
+            new TypeWrapper(type).GetWrappingNameWithType(new[] { typeof(object), typeof(double) })
+                .Is("IGeneratedCloneForTestGeneric<System.Object,System.Double>");
         }
 
 
-        void GetTypeRec(Type type,  Dictionary<Type, string> dict)
+        [TestMethod]
+        public void ジェネリックパラメータを型に入れた時の型付ラッパ名をとるテスト()
         {
-            if (type.IsValueType || type == typeof(string)) { return; }
+            var type = typeof(TestGeneric<string, int>);
+
+            var genericParamType = typeof (Task<>).GetProperty("Result").PropertyType;
+
+            new TypeWrapper(type).GetWrappingNameWithType(new []{genericParamType})
+                .Is("IGeneratedCloneForTestGeneric<T0>");
+        }
+
+        static void  GetTypeRec(Type type,  Dictionary<Type, TypeWrapper> dict)
+        {
+            if ((type.IsValueType && !type.IsGenericType) || type == typeof(string) || type.IsByRef || type.IsGenericParameter) { return; }
             
             var realType = type.IsGenericType ? type.GetGenericTypeDefinition() : type;
 
-            if (_dict.ContainsKey(realType)) { return; }
+            if (dict.ContainsKey(realType)) { return; }
 
-            dict.Add(realType, MakeCloneInterfaceName(type));
+            dict.Add(realType, new TypeWrapper(type));
             
             foreach (var propType in type.GetProperties().Select(info => info.PropertyType))
             {
@@ -121,7 +139,6 @@ namespace Test
             {
                 GetTypeRec(method.ReturnType, dict);
             }
-
         }
     }
 
@@ -134,7 +151,67 @@ namespace Test
         public List<string> Fuga { get; set; } 
     }
 
-    class TestGeneric<T>
+    class TestGeneric<T , S>
     {
+    }
+
+    class TestGenericReturn<T>
+    {
+        T Get { get; set; }
+    }
+ 
+
+    class TypeWrapper
+    {
+        private const string ClassNamePlaceHolder = "IGeneratedCloneFor";
+
+        private readonly Type _baseType;
+        private readonly string _wrappingName;
+
+        public TypeWrapper(Type baseType)
+        {
+            _baseType = baseType;
+            _wrappingName = MakeCloneInterfaceName(_baseType);
+        }
+
+        public string WrappingName
+        {
+            get { return _wrappingName; }
+        }
+
+        private static string MakeCloneInterfaceName(Type type)
+        {
+            if (!type.IsGenericType) return ClassNamePlaceHolder + type.Name.Replace("[]", "Array");
+
+            var genericParamString = GetGenericParamString(Enumerable.Range(0, type.GenericTypeArguments.Length).Select(i => string.Format("T{0}", i)));
+            var typeNameWithoutGenericParams = type.Name.Split('`')[0];
+
+            return string.Format("{0}{1}<{2}>", ClassNamePlaceHolder, typeNameWithoutGenericParams, genericParamString);
+        }
+
+        private static string GetGenericParamString(IEnumerable<string> typeParamString)
+        {
+            var genericParamString = typeParamString
+                .Aggregate("", (s, i) => string.Format("{0}{1},", s, i))
+                .TrimEnd(',');
+            return genericParamString;
+        }
+
+        public string GetWrappingNameWithType(Type[] types)
+        {
+            if (!_baseType.IsGenericType) return ClassNamePlaceHolder + _baseType.Name.Replace("[]", "Array");
+
+            var genericParamString = GetGenericParamString(types.Select(GetParameterName));
+            var typeNameWithoutGenericParams = _baseType.Name.Split('`')[0];
+
+            return string.Format("{0}{1}<{2}>", ClassNamePlaceHolder, typeNameWithoutGenericParams, genericParamString);
+        }
+
+        private static string GetParameterName(Type type)
+        {
+            return string.IsNullOrEmpty(type.FullName)
+                ? string.Format("T{0}", type.GenericParameterPosition)
+                : type.FullName;
+        }
     }
 }

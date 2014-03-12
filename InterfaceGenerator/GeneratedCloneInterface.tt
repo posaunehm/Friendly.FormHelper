@@ -9,18 +9,18 @@
 <#@ import namespace="System.Collections" #>
 <#@ import namespace="System.Collections.Generic" #> 
 <#@ import namespace="System.Windows.Forms" #> 
+<#@ import namespace="System.Reflection" #> 
 <#   
 	var dict= new Dictionary<Type, TypeWrapper>();
 	GetTypeRec(typeof(Form),dict);
-	Type[] targetTypes = new Type[]{typeof(Form),typeof(Button)};   
 #>
 namespace InterfaceGenerator
 {
 <# foreach(var targetType in dict.Keys) {#>
 	public interface <#= dict[targetType].WrappingName #>
 	{
-<# foreach(var prop in targetType.GetProperties()){ 
- 
+<# foreach(var prop in targetType.GetProperties().Where(prop => !((prop.GetGetMethod() != null && prop.GetGetMethod().IsStatic) || (prop.GetSetMethod() != null && prop.GetSetMethod().IsStatic))))
+  {
 	var hasGetter = prop.CanRead;
 	var hasSetter = prop.CanWrite;
 
@@ -41,11 +41,14 @@ namespace InterfaceGenerator
 		<#= propTypeName.Replace('+','.') #> this[<#= indexerStr #>]{ <#=hasGetter ? "get;" : "" #> <#=hasSetter ? "set;" : "" #>}
 <# } #>
 <# }
-   foreach(var method in targetType.GetMethods().Where(info => !info.IsSpecialName))
+   foreach(var method in targetType.GetMethods().Where(info => !info.IsSpecialName && !info.IsStatic).Distinct(new ToStringComparer<MethodInfo>()))
    { 
-	  // var returnTypeName = GetWrappedTypeName(method.ReturnType, dict);
+	   var returnTypeName = GetWrappedTypeName(method.ReturnType, dict);
+	   returnTypeName = returnTypeName == "System.Void" ?  "void" : returnTypeName;
+
+	   var paramString = method.GetParameters().Select(p => string.Format("{0} index{1}," ,ConvertParameterTypeName(p.ParameterType), p.Position)).Aggregate("", (acc,paramSet) => acc + paramSet).TrimEnd(',');
    #>     
-        //  <#= method.Name #>
+       <#= returnTypeName #>  <#= method.Name #> ( <#= paramString #> );
 <#
    }
  #>
@@ -55,6 +58,29 @@ namespace InterfaceGenerator
 }
 
 <#+ 
+	class ToStringComparer<T> : EqualityComparer<T>
+    {
+        public override bool Equals(T x, T y)
+        {
+            return x.ToString() == y.ToString();
+        }
+
+        public override int GetHashCode(T obj)
+        {
+            return obj != null ? obj.ToString().GetHashCode() : 0;
+        }
+    }
+
+	static string ConvertParameterTypeName(Type type)
+	{
+		var typeName = (type.FullName ?? "T0").Replace('+','.');
+		if(typeName.Contains("&"))
+        {
+			typeName = "ref " + typeName.Replace("&","");
+        }
+		return typeName;
+    }
+
     static void  GetTypeRec(Type type,  Dictionary<Type, TypeWrapper> dict)
     {
         if ((type.IsValueType && !type.IsGenericType) || type == typeof(string) || type.IsByRef || type.IsGenericParameter) { return; }
@@ -74,11 +100,10 @@ namespace InterfaceGenerator
         {
             GetTypeRec(propType, dict);
         }
-
-        foreach (var method in type.GetMethods())
-        {
-            GetTypeRec(method.ReturnType, dict);
-        }
+        //foreach (var method in type.GetMethods())
+        //{
+        //    GetTypeRec(method.ReturnType, dict);
+        //}
     }
 
 	static string GetWrappedTypeName(Type type, Dictionary<Type, TypeWrapper> dict)

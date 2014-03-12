@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
@@ -137,23 +138,58 @@ namespace Test
             GetWrappedTypeName(typeof(TestClassSub), _dict).Is("IGeneratedCloneForTestClassSub");
         }
 
-        static void  GetTypeRec(Type type,  Dictionary<Type, TypeWrapper> dict)
+        [TestMethod]
+        public void 全列挙したTypeすべてでGetWrappedTypeName()
+        {
+            GetTypeRec(typeof(Form), _dict);
+
+            foreach (var type in _dict.Keys)
+            {
+                GetWrappedTypeName(type, _dict);
+
+                foreach (var pInfo in type.GetProperties().Where(prop => !((prop.GetGetMethod() != null && prop.GetGetMethod().IsStatic) || (prop.GetSetMethod() != null && prop.GetSetMethod().IsStatic))))
+                {
+                    
+                }
+            }
+
+            var menuStripType = typeof (MenuStrip).GetMethods().Where(info => !info.IsStatic && !info.IsSpecialName ).Distinct(new ToStringComparer<MethodInfo>()).ToArray();
+        }
+
+
+        class ToStringComparer<T> : EqualityComparer<T>
+        {
+            public override bool Equals(T x, T y)
+            {
+                return x.ToString() == y.ToString();
+            }
+
+            public override int GetHashCode(T obj)
+            {
+                return obj != null ? obj.ToString().GetHashCode() : 0;
+            }
+        }
+
+        static void GetTypeRec(Type type, Dictionary<Type, TypeWrapper> dict)
         {
             if ((type.IsValueType && !type.IsGenericType) || type == typeof(string) || type.IsByRef || type.IsGenericParameter) { return; }
-            
+
             var realType = type.IsGenericType ? type.GetGenericTypeDefinition() : type;
 
-            realType = realType.IsArray ? typeof (IArrayDummy<>) : realType;
+            if (realType.IsArray)
+            {
+                realType = typeof(IArrayDummy<>);
+            }
 
             if (dict.ContainsKey(realType)) { return; }
 
             dict.Add(realType, new TypeWrapper(realType));
-            
+
             foreach (var propType in type.GetProperties().Select(info => info.PropertyType))
             {
                 GetTypeRec(propType, dict);
             }
-
+            //return;
             foreach (var method in type.GetMethods())
             {
                 GetTypeRec(method.ReturnType, dict);
@@ -164,9 +200,15 @@ namespace Test
         {
             var propRealType = type.IsGenericType ? type.GetGenericTypeDefinition() : type;
 
+            if (type.IsArray)
+            {
+                propRealType = typeof(IArrayDummy<>);
+                type = propRealType.MakeGenericType(new[] { type.GetElementType() });
+            }
+
             var propTypeName = dict.ContainsKey(propRealType) ? dict[propRealType].GetWrappingNameWithType(type.GenericTypeArguments) : propRealType.FullName;
-            
-            return propTypeName ?? string.Format("T{0}", propRealType.GenericParameterPosition);
+
+            return propTypeName ?? (propRealType.IsGenericParameter ? string.Format("T{0}", propRealType.GenericParameterPosition) : "T0");
         }
     }
 
@@ -189,6 +231,7 @@ namespace Test
     class TestGeneric<T , S>
     {
     }
+
 
     class TestGenericReturn<T>
     {

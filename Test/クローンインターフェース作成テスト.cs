@@ -48,7 +48,8 @@ namespace Test
 
             GetTypeRec(type, _dict);
 
-            _dict.ContainsKey(typeof(int[])).IsTrue();
+            _dict.ContainsKey(typeof(int[])).IsFalse();
+            _dict.ContainsKey(typeof(IArrayDummy<>)).IsTrue();
         }
 
         [TestMethod]
@@ -120,15 +121,33 @@ namespace Test
                 .Is("IGeneratedCloneForTestGeneric<T0>");
         }
 
+        [TestMethod]
+        public void メソッドのうちからプロパティをラップしているメソッドを除く()
+        {
+            var methods = typeof (Testclass).GetMethods().Where(info => !info.IsSpecialName);
+
+            methods.Any(info => info.Name.Contains("get_")).IsFalse();
+        }
+
+        [TestMethod]
+        public void 型名を生成された型名に変換する()
+        {
+            GetTypeRec(typeof(Testclass), _dict);
+
+            GetWrappedTypeName(typeof(TestClassSub), _dict).Is("IGeneratedCloneForTestClassSub");
+        }
+
         static void  GetTypeRec(Type type,  Dictionary<Type, TypeWrapper> dict)
         {
             if ((type.IsValueType && !type.IsGenericType) || type == typeof(string) || type.IsByRef || type.IsGenericParameter) { return; }
             
             var realType = type.IsGenericType ? type.GetGenericTypeDefinition() : type;
 
+            realType = realType.IsArray ? typeof (IArrayDummy<>) : realType;
+
             if (dict.ContainsKey(realType)) { return; }
 
-            dict.Add(realType, new TypeWrapper(type));
+            dict.Add(realType, new TypeWrapper(realType));
             
             foreach (var propType in type.GetProperties().Select(info => info.PropertyType))
             {
@@ -140,6 +159,15 @@ namespace Test
                 GetTypeRec(method.ReturnType, dict);
             }
         }
+
+        static string GetWrappedTypeName(Type type, Dictionary<Type, TypeWrapper> dict)
+        {
+            var propRealType = type.IsGenericType ? type.GetGenericTypeDefinition() : type;
+
+            var propTypeName = dict.ContainsKey(propRealType) ? dict[propRealType].GetWrappingNameWithType(type.GenericTypeArguments) : propRealType.FullName;
+            
+            return propTypeName ?? string.Format("T{0}", propRealType.GenericParameterPosition);
+        }
     }
 
 
@@ -148,7 +176,14 @@ namespace Test
     {
         public string Hoge { get; set; }
 
-        public List<string> Fuga { get; set; } 
+        public List<string> Fuga { get; set; }
+
+        public TestClassSub Piyo { get { return null; } }
+    }
+
+    class TestClassSub
+    {
+        
     }
 
     class TestGeneric<T , S>
@@ -159,7 +194,49 @@ namespace Test
     {
         T Get { get; set; }
     }
- 
+    interface IArrayDummy<T>
+    {
+
+        System.Int32 Length { get; }
+        System.Int64 LongLength { get; }
+        System.Int32 Rank { get; }
+        System.Object SyncRoot { get; }
+        System.Boolean IsReadOnly { get; }
+        System.Boolean IsFixedSize { get; }
+        System.Boolean IsSynchronized { get; }
+        void Set(System.Int32 index0, T index1);
+        T Get(System.Int32 index0);
+        System.Object GetValue(System.Int32[] index0);
+        System.Object GetValue(System.Int32 index0);
+        System.Object GetValue(System.Int32 index0, System.Int32 index1);
+        System.Object GetValue(System.Int32 index0, System.Int32 index1, System.Int32 index2);
+        System.Object GetValue(System.Int64 index0);
+        System.Object GetValue(System.Int64 index0, System.Int64 index1);
+        System.Object GetValue(System.Int64 index0, System.Int64 index1, System.Int64 index2);
+        System.Object GetValue(System.Int64[] index0);
+        void SetValue(System.Object index0, System.Int32 index1);
+        void SetValue(System.Object index0, System.Int32 index1, System.Int32 index2);
+        void SetValue(System.Object index0, System.Int32 index1, System.Int32 index2, System.Int32 index3);
+        void SetValue(System.Object index0, System.Int32[] index1);
+        void SetValue(System.Object index0, System.Int64 index1);
+        void SetValue(System.Object index0, System.Int64 index1, System.Int64 index2);
+        void SetValue(System.Object index0, System.Int64 index1, System.Int64 index2, System.Int64 index3);
+        void SetValue(System.Object index0, System.Int64[] index1);
+        System.Int32 GetLength(System.Int32 index0);
+        System.Int64 GetLongLength(System.Int32 index0);
+        System.Int32 GetUpperBound(System.Int32 index0);
+        System.Int32 GetLowerBound(System.Int32 index0);
+        System.Object Clone();
+        void CopyTo(System.Array index0, System.Int32 index1);
+        void CopyTo(System.Array index0, System.Int64 index1);
+        System.Collections.IEnumerator GetEnumerator();
+        void Initialize();
+        System.String ToString();
+        System.Boolean Equals(System.Object index0);
+        System.Int32 GetHashCode();
+        System.Type GetType();
+
+    }
 
     class TypeWrapper
     {
@@ -183,7 +260,7 @@ namespace Test
         {
             if (!type.IsGenericType) return ClassNamePlaceHolder + type.Name.Replace("[]", "Array");
 
-            var genericParamString = GetGenericParamString(Enumerable.Range(0, type.GenericTypeArguments.Length).Select(i => string.Format("T{0}", i)));
+            var genericParamString = GetGenericParamString(Enumerable.Range(0, type.GetGenericArguments().Length).Select(i => string.Format("T{0}", i)));
             var typeNameWithoutGenericParams = type.Name.Split('`')[0];
 
             return string.Format("{0}{1}<{2}>", ClassNamePlaceHolder, typeNameWithoutGenericParams, genericParamString);

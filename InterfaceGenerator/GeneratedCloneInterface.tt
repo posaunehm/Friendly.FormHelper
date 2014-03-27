@@ -118,7 +118,7 @@ namespace InterfaceGenerator
 
         var propTypeName = dict.ContainsKey(propRealType) ? dict[propRealType].GetWrappingNameWithType(type.GenericTypeArguments) : propRealType.FullName;
             
-        return propTypeName ?? (propRealType.IsGenericParameter ? string.Format("T{0}", propRealType.GenericParameterPosition) : "T0");
+        return propTypeName ?? "T0";//(propRealType.IsGenericParameter ? string.Format("T{0}", propRealType.GenericParameterPosition) : "T0");
     }
 
     class TypeWrapper

@@ -16,7 +16,7 @@ namespace Test
         {
             _proc =
                 Process.Start(
-                    @"D:\Documents\Visual Studio 2013\Projects\Friendly.FormHelper\SampleForm\bin\Debug\SampleForm.exe");
+                    @"..\..\..\SampleForm\bin\Debug\SampleForm.exe");
         }
 
         [TestMethod]

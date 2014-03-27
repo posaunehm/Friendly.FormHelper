@@ -28,7 +28,7 @@ namespace Test
         {
             var formType = typeof (Form);
 
-            GetTypeRec(formType,_dict);
+            TypeParser.GetTypeRec(formType,_dict);
         }
 
         [TestMethod]
@@ -36,7 +36,7 @@ namespace Test
         {
             var formType = typeof(Testclass);
 
-            GetTypeRec(formType, _dict);
+            TypeParser.GetTypeRec(formType, _dict);
 
             _dict.ContainsKey(typeof (Testclass)).IsTrue();
             _dict.ContainsKey(typeof (List<>)).IsTrue();
@@ -47,7 +47,7 @@ namespace Test
         {
             var type = typeof(int[]);
 
-            GetTypeRec(type, _dict);
+            TypeParser.GetTypeRec(type, _dict);
 
             _dict.ContainsKey(typeof(int[])).IsFalse();
             _dict.ContainsKey(typeof(IArrayDummy<>)).IsTrue();
@@ -56,8 +56,8 @@ namespace Test
         [TestMethod]
         public void 束縛する型が異なるジェネリック型を二つ加えても片方しか追加されない()
         {
-            GetTypeRec(typeof(TestGeneric<string, int>), _dict);
-            GetTypeRec(typeof(TestGeneric<int,object>), _dict);
+            TypeParser.GetTypeRec(typeof(TestGeneric<string, int>), _dict);
+            TypeParser.GetTypeRec(typeof(TestGeneric<int, object>), _dict);
 
             _dict.ContainsKey(typeof(TestGeneric<,>)).IsTrue();
             _dict.ContainsKey(typeof(TestGeneric<string,int>)).IsFalse();
@@ -67,46 +67,46 @@ namespace Test
         [TestMethod]
         public void 返り値がGenericの場合()
         {
-            GetTypeRec(typeof(IEnumerator<>), _dict);
+            TypeParser.GetTypeRec(typeof(IEnumerator<>), _dict);
             _dict.Keys.Any(type => type.IsGenericParameter).IsFalse();
         }
 
         [TestMethod]
         public void NullableがGeneric型として登録される()
         {
-            GetTypeRec(typeof(int?), _dict);
+            TypeParser.GetTypeRec(typeof(int?), _dict);
             _dict.ContainsKey(typeof (Nullable<>)).IsTrue();
         }
 
         [TestMethod]
         public void 通常のClassのクローンインターフェース名を作成する()
         {
-            new TypeWrapper(typeof(Object)).WrappingName.Is("IGeneratedCloneForObject");
+            new TypeWrapper(typeof(Object),_dict).WrappingName.Is("IGeneratedCloneForObject");
         }
 
         [TestMethod]
         public void GenericClassのクローンインターフェース名を作成する()
         {
-            new TypeWrapper(typeof (Dictionary<string, string>)).WrappingName.Is("IGeneratedCloneForDictionary<T0,T1>");
+            new TypeWrapper(typeof (Dictionary<string, string>),_dict).WrappingName.Is("IGeneratedCloneForDictionary<T0,T1>");
         }
 
         [TestMethod]
         public void Arrayのクローンインターフェース名を作成する()
         {
-            new TypeWrapper(typeof(object[])).WrappingName.Is("IGeneratedCloneForObjectArray");
+            new TypeWrapper(typeof(object[]),_dict).WrappingName.Is("IGeneratedCloneForObjectArray");
         }
 
         [TestMethod]
         public void Nullableのクローンインターフェース名を作成する()
         {
-            new TypeWrapper(typeof(int?)).WrappingName.Is("IGeneratedCloneForNullable<T0>");
+            new TypeWrapper(typeof(int?),_dict).WrappingName.Is("IGeneratedCloneForNullable<T0>");
         }
 
         [TestMethod]
         public void Genric型に実際の型を入れる()
         {
             var type = typeof(TestGeneric<string,int>);
-            new TypeWrapper(type).GetWrappingNameWithType(new[] { typeof(object), typeof(double) })
+            new TypeWrapper(type,_dict).GetWrappingNameWithType(new[] { typeof(object), typeof(double) })
                 .Is("IGeneratedCloneForTestGeneric<System.Object,System.Double>");
         }
 
@@ -118,7 +118,7 @@ namespace Test
 
             var genericParamType = typeof (Task<>).GetProperty("Result").PropertyType;
 
-            new TypeWrapper(type).GetWrappingNameWithType(new []{genericParamType})
+            new TypeWrapper(type,_dict).GetWrappingNameWithType(new []{genericParamType})
                 .Is("IGeneratedCloneForTestGeneric<T0>");
         }
 
@@ -133,7 +133,7 @@ namespace Test
         [TestMethod]
         public void 型名を生成された型名に変換する()
         {
-            GetTypeRec(typeof(Testclass), _dict);
+            TypeParser.GetTypeRec(typeof(Testclass), _dict);
 
             GetWrappedTypeName(typeof(TestClassSub), _dict).Is("IGeneratedCloneForTestClassSub");
         }
@@ -141,7 +141,7 @@ namespace Test
         [TestMethod]
         public void 全列挙したTypeすべてでGetWrappedTypeName()
         {
-            GetTypeRec(typeof(Form), _dict);
+            TypeParser.GetTypeRec(typeof(Form), _dict);
 
             foreach (var type in _dict.Keys)
             {
@@ -156,6 +156,34 @@ namespace Test
             var menuStripType = typeof (MenuStrip).GetMethods().Where(info => !info.IsStatic && !info.IsSpecialName ).Distinct(new ToStringComparer<MethodInfo>()).ToArray();
         }
 
+        [TestMethod]
+        public void プロパティの全列挙テスト_プロパティ3()
+        {
+            TypeParser.GetTypeRec(typeof(Testclass),_dict);
+
+            var generated = _dict[typeof (Testclass)];
+
+            generated.PropertyStrings.Count().Is(3);
+            generated.PropertyStrings.ElementAt(0).Is("System.String Hoge { get; set; }");
+            generated.PropertyStrings.ElementAt(1).Is("IGeneratedCloneForList<IGeneratedCloneForTestClassSub> Fuga { get; set; }");
+            generated.PropertyStrings.ElementAt(2).Is("IGeneratedCloneForTestClassSub Piyo { get;  }");
+        }
+
+        [TestMethod]
+        public void プロパティの全列挙テスト_プロパティ0()
+        {
+            var generated = new TypeWrapper(typeof(TestClassSub),_dict);
+
+            generated.PropertyStrings.Count().Is(0);
+        }
+
+        [TestMethod]
+        public void インデクサの取得テスト()
+        {
+            TypeParser.GetTypeRec(typeof(TestIndexer),_dict);
+
+            _dict[typeof(TestIndexer)].PropertyStrings.ElementAt(0).Is("System.Int32 this[System.Int32 index0] { get; set; }");
+        }
 
         class ToStringComparer<T> : EqualityComparer<T>
         {
@@ -167,32 +195,6 @@ namespace Test
             public override int GetHashCode(T obj)
             {
                 return obj != null ? obj.ToString().GetHashCode() : 0;
-            }
-        }
-
-        static void GetTypeRec(Type type, Dictionary<Type, TypeWrapper> dict)
-        {
-            if ((type.IsValueType && !type.IsGenericType) || type == typeof(string) || type.IsByRef || type.IsGenericParameter) { return; }
-
-            var realType = type.IsGenericType ? type.GetGenericTypeDefinition() : type;
-
-            if (realType.IsArray)
-            {
-                realType = typeof(IArrayDummy<>);
-            }
-
-            if (dict.ContainsKey(realType)) { return; }
-
-            dict.Add(realType, new TypeWrapper(realType));
-
-            foreach (var propType in type.GetProperties().Select(info => info.PropertyType))
-            {
-                GetTypeRec(propType, dict);
-            }
-            //return;
-            foreach (var method in type.GetMethods())
-            {
-                GetTypeRec(method.ReturnType, dict);
             }
         }
 
@@ -213,12 +215,11 @@ namespace Test
     }
 
 
-
     class Testclass
     {
         public string Hoge { get; set; }
 
-        public List<string> Fuga { get; set; }
+        public List<TestClassSub> Fuga { get; set; }
 
         public TestClassSub Piyo { get { return null; } }
     }
@@ -228,7 +229,16 @@ namespace Test
         
     }
 
-    class TestGeneric<T , S>
+    class TestIndexer
+    {
+        public int this[int i]
+        {
+            get { throw new NotImplementedException(); }
+            set { throw new NotImplementedException(); }
+        }
+    }
+
+    class TestGeneric<T1 , T2>
     {
     }
 
@@ -279,59 +289,5 @@ namespace Test
         System.Int32 GetHashCode();
         System.Type GetType();
 
-    }
-
-    class TypeWrapper
-    {
-        private const string ClassNamePlaceHolder = "IGeneratedCloneFor";
-
-        private readonly Type _baseType;
-        private readonly string _wrappingName;
-
-        public TypeWrapper(Type baseType)
-        {
-            _baseType = baseType;
-            _wrappingName = MakeCloneInterfaceName(_baseType);
-        }
-
-        public string WrappingName
-        {
-            get { return _wrappingName; }
-        }
-
-        private static string MakeCloneInterfaceName(Type type)
-        {
-            if (!type.IsGenericType) return ClassNamePlaceHolder + type.Name.Replace("[]", "Array");
-
-            var genericParamString = GetGenericParamString(Enumerable.Range(0, type.GetGenericArguments().Length).Select(i => string.Format("T{0}", i)));
-            var typeNameWithoutGenericParams = type.Name.Split('`')[0];
-
-            return string.Format("{0}{1}<{2}>", ClassNamePlaceHolder, typeNameWithoutGenericParams, genericParamString);
-        }
-
-        private static string GetGenericParamString(IEnumerable<string> typeParamString)
-        {
-            var genericParamString = typeParamString
-                .Aggregate("", (s, i) => string.Format("{0}{1},", s, i))
-                .TrimEnd(',');
-            return genericParamString;
-        }
-
-        public string GetWrappingNameWithType(Type[] types)
-        {
-            if (!_baseType.IsGenericType) return ClassNamePlaceHolder + _baseType.Name.Replace("[]", "Array");
-
-            var genericParamString = GetGenericParamString(types.Select(GetParameterName));
-            var typeNameWithoutGenericParams = _baseType.Name.Split('`')[0];
-
-            return string.Format("{0}{1}<{2}>", ClassNamePlaceHolder, typeNameWithoutGenericParams, genericParamString);
-        }
-
-        private static string GetParameterName(Type type)
-        {
-            return string.IsNullOrEmpty(type.FullName)
-                ? string.Format("T{0}", type.GenericParameterPosition)
-                : type.FullName;
-        }
     }
 }

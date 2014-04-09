@@ -1,0 +1,3 @@
+[submodule "Friendly.PinInterface"]
+	path = Friendly.PinInterface
+	url = https://github.com/vshtc/Friendly.PinInterface

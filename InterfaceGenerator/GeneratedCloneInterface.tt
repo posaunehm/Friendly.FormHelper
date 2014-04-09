@@ -57,6 +57,7 @@ namespace InterfaceGenerator
 <# } #>
 }
 
+
 <#+ 
 	class ToStringComparer<T> : EqualityComparer<T>
     {

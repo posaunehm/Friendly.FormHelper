@@ -75,9 +75,9 @@ namespace Test
             return genericParamString;
         }
 
-        public string GetWrappingNameWithType(Type[] types)
+        private string GetWrappingNameWithType(Type[] types)
         {
-            if (!_baseType.IsGenericType) return ClassNamePlaceHolder + _baseType.Name.Replace("[]", "Array");
+            if (!_baseType.IsGenericType) return ClassNamePlaceHolder + _baseType.Name;
 
             var genericParamString = GetGenericParamString(types.Select(GetParameterName));
             var typeNameWithoutGenericParams = _baseType.Name.Split('`')[0];
@@ -85,11 +85,11 @@ namespace Test
             return string.Format("{0}{1}<{2}>", ClassNamePlaceHolder, typeNameWithoutGenericParams, genericParamString);
         }
 
-        private static string GetParameterName(Type type)
+        private string GetParameterName(Type type)
         {
             return string.IsNullOrEmpty(type.FullName)
                 ? string.Format("T{0}", type.GenericParameterPosition)
-                : type.FullName;
+                : _dict[type].WrappingName;
         }
 
         string GetWrappedTypeName(Type type)

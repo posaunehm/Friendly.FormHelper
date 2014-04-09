@@ -103,26 +103,6 @@ namespace Test
         }
 
         [TestMethod]
-        public void Genric型に実際の型を入れる()
-        {
-            var type = typeof(TestGeneric<string,int>);
-            new TypeWrapper(type,_dict).GetWrappingNameWithType(new[] { typeof(object), typeof(double) })
-                .Is("IGeneratedCloneForTestGeneric<System.Object,System.Double>");
-        }
-
-
-        [TestMethod]
-        public void ジェネリックパラメータを型に入れた時の型付ラッパ名をとるテスト()
-        {
-            var type = typeof(TestGeneric<string, int>);
-
-            var genericParamType = typeof (Task<>).GetProperty("Result").PropertyType;
-
-            new TypeWrapper(type,_dict).GetWrappingNameWithType(new []{genericParamType})
-                .Is("IGeneratedCloneForTestGeneric<T0>");
-        }
-
-        [TestMethod]
         public void メソッドのうちからプロパティをラップしているメソッドを除く()
         {
             var methods = typeof (Testclass).GetMethods().Where(info => !info.IsSpecialName);
@@ -130,31 +110,7 @@ namespace Test
             methods.Any(info => info.Name.Contains("get_")).IsFalse();
         }
 
-        [TestMethod]
-        public void 型名を生成された型名に変換する()
-        {
-            TypeParser.GetTypeRec(typeof(Testclass), _dict);
 
-            GetWrappedTypeName(typeof(TestClassSub), _dict).Is("IGeneratedCloneForTestClassSub");
-        }
-
-        [TestMethod]
-        public void 全列挙したTypeすべてでGetWrappedTypeName()
-        {
-            TypeParser.GetTypeRec(typeof(Form), _dict);
-
-            foreach (var type in _dict.Keys)
-            {
-                GetWrappedTypeName(type, _dict);
-
-                foreach (var pInfo in type.GetProperties().Where(prop => !((prop.GetGetMethod() != null && prop.GetGetMethod().IsStatic) || (prop.GetSetMethod() != null && prop.GetSetMethod().IsStatic))))
-                {
-                    
-                }
-            }
-
-            var menuStripType = typeof (MenuStrip).GetMethods().Where(info => !info.IsStatic && !info.IsSpecialName ).Distinct(new ToStringComparer<MethodInfo>()).ToArray();
-        }
 
         [TestMethod]
         public void プロパティの全列挙テスト_プロパティ3()
@@ -196,21 +152,6 @@ namespace Test
             {
                 return obj != null ? obj.ToString().GetHashCode() : 0;
             }
-        }
-
-        static string GetWrappedTypeName(Type type, Dictionary<Type, TypeWrapper> dict)
-        {
-            var propRealType = type.IsGenericType ? type.GetGenericTypeDefinition() : type;
-
-            if (type.IsArray)
-            {
-                propRealType = typeof(IArrayDummy<>);
-                type = propRealType.MakeGenericType(new[] { type.GetElementType() });
-            }
-
-            var propTypeName = dict.ContainsKey(propRealType) ? dict[propRealType].GetWrappingNameWithType(type.GenericTypeArguments) : propRealType.FullName;
-
-            return propTypeName ?? (propRealType.IsGenericParameter ? string.Format("T{0}", propRealType.GenericParameterPosition) : "T0");
         }
     }
 
